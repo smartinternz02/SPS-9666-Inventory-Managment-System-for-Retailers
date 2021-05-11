@@ -288,7 +288,7 @@ def cart_checkout():
                                plain_text_content = f"Dear {session['username']}, " + "\n\n" + f"You are receiving this mail as the item {prod} is out of stock! Please order new stock soon." + "\n\n\n" + "Thank you" + "\n" + "Inventory Management System")
                 
                 try:
-                    sg = SendGridAPIClient("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")
+                    sg = SendGridAPIClient(sgAPI)
                     response = sg.send(sgemail)
                     print(response.status_code)
                 except Exception as e:
@@ -393,7 +393,7 @@ def signup():
                            plain_text_content = f"Hello {username}!" + "\n\n" + "Thank you for registering for the Inventory Management System application." + "\n" + "I hope you will have a great experience here." + "\n\n\n" + "Thank you" + "\n" + "Inventory Management System")
             
             try:
-                sg = SendGridAPIClient("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")
+                sg = SendGridAPIClient(sgAPI)
                 response = sg.send(sgemail)
                 print(response.status_code)
             except Exception as e:
