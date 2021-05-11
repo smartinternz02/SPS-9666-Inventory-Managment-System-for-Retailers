@@ -1,7 +1,8 @@
 from flask import Flask, render_template, session, request, redirect, url_for
 from flask_mysqldb import MySQL
 import MySQLdb.cursors
-import smtplib
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 app = Flask(__name__)
 app.config['MYSQL_HOST'] = 'remotemysql.com'
@@ -279,17 +280,19 @@ def cart_checkout():
             mysql.connection.commit()
             
             #Send mail if resq == 0
-            if resq == 0:
+            if resq <= 0:
                 prod = cart[i][3]
-                content = f"Dear {session['username']}, " + "\n\n" + f"You are receiving this mail as the item {prod} is out of stock! Please order new stock soon." + "\n\n\n" + "Thank you" + "\n" + "Inventory Management System"
-                to = session['email']
-                server = smtplib.SMTP('smtp.gmail.com', 587)
-                server.ehlo()
-                server.starttls()
-                server.login('tempsonika@gmail.com', 'Pass@123')
-                server.sendmail("'tempsonika@gmail.com", to, content)
-                server.close()
-            
+                sgemail = Mail(from_email = "tempsonika@gmail.com",
+                               to_emails = session['email'],
+                               subject = "Alert! Out of Stock",
+                               plain_text_content = f"Dear {session['username']}, " + "\n\n" + f"You are receiving this mail as the item {prod} is out of stock! Please order new stock soon." + "\n\n\n" + "Thank you" + "\n" + "Inventory Management System")
+                
+                try:
+                    sg = SendGridAPIClient("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")
+                    response = sg.send(sgemail)
+                    print(response.status_code)
+                except Exception as e:
+                    print(e)
             
         cursor.execute("DELETE FROM cart WHERE user = %s", (session['username'], ))
         mysql.connection.commit()
@@ -384,16 +387,20 @@ def signup():
             mysql.connection.commit()
             msg = 'You have successfully registered! You can login now.'
             
-            content = f"Hello {username}!" + "\n\n" + "Thank you for registering for the Inventory Management System application." + "\n" + "I hope you will have a great experience here." + "\n\n\n" + "Thank you" + "\n" + "Inventory Management System"
-            to = email
-            server = smtplib.SMTP('smtp.gmail.com', 587)
-            server.ehlo()
-            server.starttls()
-            server.login('tempsonika@gmail.com', 'Pass@123')
-            server.sendmail("'tempsonika@gmail.com", to, content)
-            server.close()
+            sgemail = Mail(from_email = "tempsonika@gmail.com",
+                           to_emails = email,
+                           subject = "Registration sucessful",
+                           plain_text_content = f"Hello {username}!" + "\n\n" + "Thank you for registering for the Inventory Management System application." + "\n" + "I hope you will have a great experience here." + "\n\n\n" + "Thank you" + "\n" + "Inventory Management System")
             
+            try:
+                sg = SendGridAPIClient("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")
+                response = sg.send(sgemail)
+                print(response.status_code)
+            except Exception as e:
+                print(e)
+                
         cursor.close()
+        
     elif request.method == 'POST':
         msg = 'Please fill out the form !'
     return render_template('signup.html', msg = msg)
@@ -433,4 +440,4 @@ def logout():
  
 
 if __name__ == "__main__":
-    app.run(host = '0.0.0.0', port = 5000, debug = True)
+    app.run(host = "0.0.0.0", port = 5000, debug = True)
