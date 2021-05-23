@@ -9,7 +9,7 @@ app.config['MYSQL_HOST'] = 'remotemysql.com'
 app.config['MYSQL_USER'] = 'bteKwsk7YV'
 app.config['MYSQL_PASSWORD'] = 'heSLzH5PvV'
 app.config['MYSQL_DB'] = 'bteKwsk7YV'
-mysql = MySQL(app)
+
 app.secret_key = 'a'
 
 
@@ -22,11 +22,7 @@ def home():
         res = cursor.execute("SELECT * FROM suppliers WHERE user = %s ORDER BY supname", (session['username'], ))
         data = cursor.fetchall()
         cursor.close()
-        if res > 0:
-            return render_template('supplier.html', data = data)
-        else:
-            msg = "No supplier details found."
-            return render_template('supplier.html', msg = msg)
+        return render_template('supplier.html', msg = msg)
  
  
 #Edit supplier
@@ -39,10 +35,8 @@ def edit_sup(supid):
     
     if request.method == 'POST':
         name = request.form['name']
-        contact = request.form['contact']
         address = request.form['address']
         
-        cursor = mysql.connection.cursor()
         cursor.execute("UPDATE suppliers SET supname = %s, contact = %s, address = %s WHERE supid = %s", (name, contact, address, supid))
         mysql.connection.commit()
         cursor.close()
@@ -54,7 +48,6 @@ def edit_sup(supid):
 #Delete supplier
 @app.route('/delete_supplier/<string:supid>', methods = ['POST'])
 def delete_sup(supid):
-    cursor = mysql.connection.cursor()
     cursor.execute("DELETE FROM suppliers WHERE supid = %s", (supid, ))
     mysql.connection.commit()
     cursor.close()
@@ -65,8 +58,6 @@ def delete_sup(supid):
 def add_sup():
     if request.method == 'POST':
         name = request.form['name']
-        contact = request.form['contact']
-        address = request.form['address']
         
         cursor = mysql.connection.cursor()
         cursor.execute("INSERT INTO suppliers(user, supname, contact, address) VALUES(%s, %s, %s, %s)", (session['username'], name, contact, address))
@@ -86,11 +77,6 @@ def inventory():
     total1 = cursor.execute("SELECT * FROM inventory WHERE user = %s", (session['username'], ))
     total2 = 0
     cursor.execute("SELECT quantity FROM inventory WHERE user = %s", (session['username'], ))
-    q = cursor.fetchall()
-    cursor.execute("SELECT sprice FROM inventory WHERE user = %s", (session['username'], ))
-    sp = cursor.fetchall()
-    print(q)
-    print(sp)
     q1 = []
     sp1 = []
     for i in q:
@@ -117,14 +103,9 @@ def add_product():
         name = request.form['name']
         quantity = request.form['quantity']
         measure = request.form['measurement']
-        cp = request.form['cprice']
-        profit = request.form['profit']
         supplier = request.form['supplier']
         sp = int(cp) + int(profit)
         
-        cursor = mysql.connection.cursor()
-        cursor.execute("INSERT INTO inventory(user, prodname, quantity, measurement, cprice, sprice, profit, supplier) VALUES(%s, %s, %s, %s, %s, %s, %s, %s)", (session['username'], name, quantity, measure, cp, sp, profit, supplier, ))
-        mysql.connection.commit()
         cursor.execute("INSERT INTO transactions1(user, supplier, product, quantity, measurement, price) VALUES(%s, %s, %s, %s, %s, %s)", (session['username'], supplier, name, quantity, measure, cp))
         mysql.connection.commit()
         cursor.close()
@@ -139,7 +120,7 @@ def add_product():
     return render_template('add_product.html', sup = sup)
 
 #Edit product
-@app.route('/edit_product/<string:prodid>', methods = ['POST', 'GET'])
+@app.route('/edit_products/<string:prodid>', methods = ['POST', 'GET'])
 def edit_product(prodid):
     cursor = mysql.connection.cursor()
     cursor.execute("SELECT * FROM inventory WHERE prodid = %s", (prodid, ))
@@ -152,17 +133,9 @@ def edit_product(prodid):
         measure = request.form['measurement']
         cp = request.form['cprice']
         profit = request.form['profit']
-        supplier = request.form['supplier']
-        sp = int(cp) + int(profit)
-        
-        cursor = mysql.connection.cursor()
-        cursor.execute("UPDATE inventory SET prodname = %s, quantity = %s, measurement = %s, cprice = %s, sprice = %s, profit = %s, supplier = %s WHERE prodid = %s", (name, quantity, measure, cp, sp, profit, supplier, prodid))
-        mysql.connection.commit()
-        cursor.close()
         
         return redirect(url_for('inventory'))
     
-    cursor = mysql.connection.cursor()
     cursor.execute("SELECT supname FROM suppliers WHERE user = %s", (session['username'], ))
     sup = cursor.fetchall()
     cursor.close()
@@ -194,9 +167,7 @@ def checkout():
     cursor = mysql.connection.cursor()
     cursor.execute("SELECT price FROM cart WHERE user = %s", (session['username'], ))
     s = cursor.fetchall()
-    salelist = []
-    for i in s:
-        salelist.append(i[0])
+    
     sale = sum(salelist)
     
     if res1 > 0 and res2 > 0:
@@ -274,8 +245,6 @@ def cart_checkout():
             print("Available quantity: ", q)
             resq = q[0] - cart[i][4]
             print("Remaining:", resq)
-            cursor.execute("UPDATE inventory SET quantity = %s WHERE prodname = %s AND user = %s", (resq, cart[i][3], session['username']))
-            mysql.connection.commit()
             cursor.execute("INSERT INTO transactions(user, custname, prodname, quantity, measurement, price) VALUES(%s, %s, %s, %s, %s, %s)", (session['username'], cart[i][2], cart[i][3], cart[i][4], cart[i][5], cart[i][6]))
             mysql.connection.commit()
             
@@ -295,8 +264,6 @@ def cart_checkout():
                     print(e)
             
         cursor.execute("DELETE FROM cart WHERE user = %s", (session['username'], ))
-        mysql.connection.commit()
-        cursor.close()
         
         return redirect(url_for('checkout'))
 
@@ -318,14 +285,6 @@ def transactions():
         for i in cin:
             inlist.append(i[0])
         cashin = sum(inlist)
-    if res2 > 0:
-        cursor = mysql.connection.cursor()
-        cursor.execute("SELECT price, quantity FROM transactions1 WHERE user = %s", (session['username'], ))
-        cout = cursor.fetchall()
-        outlist = []
-        for i in cout:
-            outlist.append(i[0] * i[1])
-        cashout = sum(outlist)
     
     if res1 > 0 or res2 > 0:
         return render_template('transactions.html', data1 = data1, data2 = data2, cashin = cashin, cashout = cashout)
@@ -336,7 +295,6 @@ def transactions():
 #Delete all transactions
 @app.route('/delete_all_transactions')
 def delete_all_transactions():
-    cursor = mysql.connection.cursor()
     cursor.execute("DELETE FROM transactions WHERE user = %s", (session['username'], ))
     mysql.connection.commit()
     cursor.close()
@@ -345,8 +303,6 @@ def delete_all_transactions():
 #Delete all transactions1
 @app.route('/delete_all_transactions1')
 def delete_all_transactions1():
-    cursor = mysql.connection.cursor()
-    cursor.execute("DELETE FROM transactions1 WHERE user = %s", (session['username'], ))
     mysql.connection.commit()
     cursor.close()
     return redirect(url_for('transactions'))
@@ -358,12 +314,10 @@ def delete_transaction(transid):
     cursor.execute("DELETE FROM transactions WHERE transid = %s", (transid, ))
     mysql.connection.commit()
     cursor.close()
-    return redirect(url_for('transactions'))
 
 #Delete a transaction1
 @app.route('/delete_transaction1/<string:transid>', methods = ['POST'])
 def delete_transaction1(transid):
-    cursor = mysql.connection.cursor()
     cursor.execute("DELETE FROM transactions1 WHERE transid = %s", (transid, ))
     mysql.connection.commit()
     cursor.close()
@@ -379,7 +333,6 @@ def signup():
         
         cursor = mysql.connection.cursor()
         cursor.execute('SELECT * FROM retailers WHERE username = %s', (username, ))
-        account = cursor.fetchone()
         if account:
             msg = 'Username already exists.'
         else:
@@ -401,13 +354,10 @@ def signup():
                 
         cursor.close()
         
-    elif request.method == 'POST':
-        msg = 'Please fill out the form !'
     return render_template('signup.html', msg = msg)
 
 @app.route('/login', methods =['GET', 'POST'])
 def login():
-    msg = ''
     if request.method == 'POST' and 'username' in request.form and 'password' in request.form:
         username = request.form['username']
         password = request.form['password']
@@ -415,17 +365,6 @@ def login():
         cursor = mysql.connection.cursor()
         cursor.execute('SELECT * FROM retailers WHERE username = %s AND password = %s', (username, password, ))
         account = cursor.fetchone()
-        if account:
-            session['loggedin'] = True
-            session['username'] = account[0]
-            session['email'] = account[1]
-            print(account)
-            msg = 'Logged in successfully!'
-            print(msg)
-            return redirect(url_for('home'))
-        else:
-            msg = 'Incorrect credentials!'
-            print(msg)
     return render_template('login.html', msg = msg)
 
 @app.route('/logout')
