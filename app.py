@@ -6,9 +6,9 @@ from sendgrid.helpers.mail import Mail
 
 app = Flask(__name__)
 app.config['MYSQL_HOST'] = 'remotemysql.com'
-app.config['MYSQL_USER'] = 'bteKwsk7YV'
-app.config['MYSQL_PASSWORD'] = 'heSLzH5PvV'
-app.config['MYSQL_DB'] = 'bteKwsk7YV'
+app.config['MYSQL_USER'] = 'bteKwsa7YT'
+app.config['MYSQL_PASSWORD'] = 'heSLzH0fvV'
+app.config['MYSQL_DB'] = 'bteKwsa7YT'
 
 app.secret_key = 'a'
 
